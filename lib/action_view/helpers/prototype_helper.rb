@@ -329,7 +329,7 @@ module ActionView
           #   page.replace_html 'person-45', :partial => 'person', :object => @person
           #
           def replace_html(id, *options_for_render)
-            call 'Element.update', id, render(*options_for_render)
+            call "jQuery('#{jquery_id(id)}').html", render(*options_for_render)
           end
 
           # Replaces the "outer HTML" (i.e., the entire element, not just its
@@ -387,7 +387,7 @@ module ActionView
           #  page.show 'person_6', 'person_13', 'person_223'
           #
           def show(*ids)
-            loop_on_multiple_args 'Element.show', ids
+            call "jQuery(\"#{jquery_ids(ids)}\").show"
           end
 
           # Hides the visible DOM elements with the given +ids+.
@@ -399,7 +399,7 @@ module ActionView
           #  page.hide 'person_29', 'person_9', 'person_0'
           #
           def hide(*ids)
-            loop_on_multiple_args 'Element.hide', ids
+            call "jQuery(\"#{jquery_ids(ids)}\").hide"
           end
 
           # Toggles the visibility of the DOM elements with the given +ids+.
@@ -518,6 +518,14 @@ module ActionView
           end
 
           private
+            def jquery_id(id)
+              id.to_s.count('#.*,>+~:[/ ') == 0 ? "##{id}" : id
+            end
+
+            def jquery_ids(ids)
+              Array(ids).map{|id| jquery_id(id)}.join(',')
+            end
+
             def loop_on_multiple_args(method, ids)
               record(ids.size>1 ?
                 "#{javascript_object_for(ids)}.each(#{method})" :
@@ -547,7 +555,7 @@ module ActionView
 
             def with_formats(*args)
               return yield unless @context
-              
+
               lookup = @context.lookup_context
               begin
                 old_formats, lookup.formats = lookup.formats, args
